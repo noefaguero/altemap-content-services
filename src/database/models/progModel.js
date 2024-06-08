@@ -1,23 +1,23 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 
-const automationSchema = new Schema({
+const progSchema = new Schema({ // esquema de cambios programados
     requests: {
-      type: SchemaTypes.Mixed, // array de JSON variable
+      type: SchemaTypes.Array,
       required: true
     },
     exec_date: {
-        type: Date,
+        type: SchemaTypes.Date,
         validate: {
             validator: (value) => value > new Date(),
             message: (props) => 'La fecha debe ser superior al momento actual'
         }
     },
     createdAt: { 
-        type: Date,
+        type: SchemaTypes.Date,
         default: Date.now 
     }
 })
 
-const Automation = model('Automation', automationSchema)
+const Prog = model('Prog', progSchema)
 
-module.exports = Automation
+module.exports = Prog
