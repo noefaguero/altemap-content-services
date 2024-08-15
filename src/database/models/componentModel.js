@@ -1,6 +1,7 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 
-const contentSchemaSchema = new Schema({ // definicion del esquema de contenido, se utilizara para construir el formulario y validacion de sus elementos
+// definicion del esquema de contenido, se utilizara para construir el formulario y validacion de sus elementos
+const contentSchemaSchema = new Schema({ 
     name: {
         type: SchemaTypes.String,
         required: [true, 'El nombre del campo en la especificacion del esquema de contenido es necesario']
@@ -19,34 +20,6 @@ const contentSchemaSchema = new Schema({ // definicion del esquema de contenido,
     }
 }, { _id: false })
 
-const mediaSchema = new Schema({
-    name: {
-        type: SchemaTypes.String,
-        required: [true, 'El nombre del archivo es necesario'],
-        unique: true
-    },
-    type: {
-        type: SchemaTypes.String, 
-        enum: {
-            values: ['imagen', 'pdf'],
-            message: props => `No se aceptan los medios de tipo ${props.value}`
-        },
-        required: [true, 'Es necesario especificar el tipo de medio']
-    },
-    size: {
-        type: SchemaTypes.Number,
-        required: [true, 'El tamaño del archivo es necesario']
-    },
-    externalUserId: {
-        type: SchemaTypes.String, 
-        required: [true, 'El identificador del usuario es necesario'],
-    },
-    createdAt: { 
-        type: SchemaTypes.Date,
-        default: Date.now 
-    }
-}, { _id: false })
-
 const changelogSchema = new Schema({
     externalUserId: {
         type: SchemaTypes.String, 
@@ -61,13 +34,10 @@ const changelogSchema = new Schema({
     }
 }, { _id: false })
 
+
 const componentSchema = new Schema({
     name: {
         type: SchemaTypes.String,
-        required: true
-    },
-    pages: {
-        type: Array,
         required: true
     },
     content_fields: [contentSchemaSchema], // se utilizara para construir el contenido de un elemento
@@ -79,6 +49,10 @@ const componentSchema = new Schema({
         type: SchemaTypes.Boolean,
         default: false
     },
+    unique_element: {
+        type: SchemaTypes.Boolean,
+        default: false
+    },
     elements: {
         type: [{
             type: SchemaTypes.ObjectId,
@@ -86,7 +60,13 @@ const componentSchema = new Schema({
             default: []
         }],
     },
-    media: [mediaSchema],
+    media: {
+        type: [{
+            type: SchemaTypes.ObjectId,
+            ref: 'Media',
+            default: []
+        }]
+    },
     changelog: [changelogSchema]
 }, {
     timestamps: true

@@ -7,6 +7,7 @@ const elementSchema = new Schema({
   },
   component_id: {
     type: SchemaTypes.ObjectId,
+    ref: 'Component',
     required: true
   },
   is_hidden: {

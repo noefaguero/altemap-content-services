@@ -1,16 +1,35 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 
 const projectSchema = new Schema({
-    externalId: {
-      type: SchemaTypes.String, // cadena de objectId en la base de datos altemap_users
-      required: true
+    name: {
+        type: SchemaTypes.String,
+        required: true
     },
     pages: {
         type: [{
             type: SchemaTypes.ObjectId,
-            ref: 'Page',
+            ref: 'Page'
+        }]
+    },
+    components: {
+        type: [{
+            type: SchemaTypes.ObjectId,
+            ref: 'Component'
+        }]
+    },
+    media: { // los componentes pueden compartir archivos
+        type: [{
+            type: SchemaTypes.ObjectId,
+            ref: 'Media',
             default: []
         }]
+    },
+    metrics: {
+        requests: { type: Schema.Types.Number },
+        media: {
+            files: { type: Schema.Types.Number },
+            total_kb: { type: Schema.Types.Number }
+        }
     }
 }, {
     timestamps: true

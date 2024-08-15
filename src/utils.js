@@ -1,17 +1,21 @@
-// MUTACIONES EN DOCUMENTOS CON DEPENDENCIA
+const mongoose = require('mongoose')
+
 exports.transaction = async (operations) => {
-    const session = await startSession()
-    session.startTransaction()
-    
-    try {
-      operations.forEach(async operation => await operation())
-      return true
+  const session = await mongoose.startSession()
+  session.startTransaction()
 
-    } catch (error) {
-      await session.abortTransaction()
-      return false
-
-    } finally {
-      session.endSession()
+  try {
+    for (const operation of operations) {
+      await operation()
     }
+    await session.commitTransaction()
+    return true
+
+  } catch (error) {
+    await session.abortTransaction() //rollback
+    return false
+
+  } finally {
+    session.endSession()
+  }
 }
