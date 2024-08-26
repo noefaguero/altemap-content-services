@@ -1,6 +1,7 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 const { findByIdAndUpdate } = require('./projectModel')
 
+
 const elementSchema = new Schema({
   index: {
     type: SchemaTypes.Number,
@@ -74,6 +75,7 @@ const elementSchema = new Schema({
     timestamps: true
 })
 
+
 // middleware para creaciones o actualizaciones de elementos
 elementSchema.pre('save', async (doc, next) => {
   // si se está creando un elemento nuevo se asigna como indice la ultima posicion
@@ -87,6 +89,7 @@ elementSchema.pre('save', async (doc, next) => {
   }
   next()
 })
+
 
 // middleware para reordenar indices ante una eliminacion
 elementSchema.post('remove', async (doc, next) => {
@@ -105,7 +108,7 @@ elementSchema.post('remove', async (doc, next) => {
   next()
 })
 
-// método estatico para cmbiar el index (se necesita el indice previo). Se usará directamente en el servicio 
+// método estatico para cambiar index (se necesita el índice previo) 
 elementSchema.statics.changeIndex = async (id, origin, newIndex) => {
   try {
 
@@ -141,7 +144,9 @@ elementSchema.statics.changeIndex = async (id, origin, newIndex) => {
   }
 }
 
+
 // crear modelo
 const Element = model('Element', elementSchema)
+
 
 module.exports = Element

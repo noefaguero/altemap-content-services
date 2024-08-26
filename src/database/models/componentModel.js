@@ -60,6 +60,10 @@ const componentSchema = new Schema({
             default: []
         }],
     },
+    elements_lenght: {
+        type: SchemaTypes.Number,
+        default: 0
+    },
     media: {
         type: [{
             type: SchemaTypes.ObjectId,

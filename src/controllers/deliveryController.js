@@ -1,29 +1,41 @@
-const pageServices = require('../services/pageServices')
-const componentServices = require('../services/componentServices')
 const elementServices = require('../services/elementServices')
 
 
-const getPageComponents = async ({ params }, res) => {
-  const components = await pageServices.getPageComponents(params.id)
-  res.json(components)
+const getComponentElements = async ({ params, query }, res) => {
+  const elements = await elementServices.getElementsByComponent(
+    params.id,
+    query.order,
+    query.limit,
+    query.fieldIndex,
+    query.prevIndex
+  )
+  res.json(elements)
 }
 
-const getComponentElements = async ({ params }, res) => {
-  const componentElements = await componentServices.getComponentElements(params.id)
-  componentElements.elements.sort((a, b) => a.index - b.index)
-
-  res.json(componentElements)
-
-}
 
 const getElement = async ({ params }, res) => {
-  const element = await elementServices.getElementById(params.id)
-  res.json(element)
+  try {
+    const element = await elementServices.getElementById(params.id)
+
+    if (!element) {
+      return res.status(404).json({ error: 'Elemento no encontrado' })
+    }
+
+    res.json(element)
+
+  } catch (error) {
+
+    if (error.message === 'ID no válido') {
+      return res.status(400).json({ error: error.message }) // bad request
+    }
+    
+    console.log(error)
+    res.status(500).json({ error: 'Error en el servidor' })
+  }
 }
 
 
 module.exports = {
-  getPageComponents,
   getComponentElements,
   getElement
 }

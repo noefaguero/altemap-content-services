@@ -1,8 +1,7 @@
 const router = require('express').Router()
-const { getPageComponents, getComponentElements, getElement } = require('../controllers/deliveryController')
+const { getComponentElements, getElement } = require('../controllers/deliveryController')
 
-router.get('/page/:id', getPageComponents)
-router.get('/component/:id', getComponentElements)
+router.get('/component-elements/:id', getComponentElements) // elementos de un componente (paginados)
 router.get('/element/:id', getElement)
 
 

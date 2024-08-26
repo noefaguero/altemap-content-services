@@ -5,15 +5,18 @@ exports.transaction = async (operations) => {
   session.startTransaction()
 
   try {
+
+    let response
     for (const operation of operations) {
-      await operation()
+      response = await operation()
     }
     await session.commitTransaction()
-    return true
+    return response
 
   } catch (error) {
     await session.abortTransaction() //rollback
-    return false
+    console.log(error)
+    throw error
 
   } finally {
     session.endSession()
