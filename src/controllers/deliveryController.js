@@ -2,14 +2,19 @@ const elementServices = require('../services/elementServices')
 
 
 const getComponentElements = async ({ params, query }, res) => {
-  const elements = await elementServices.getElementsByComponent(
-    params.id,
-    query.order,
-    query.limit,
-    query.fieldIndex,
-    query.prevIndex
-  )
-  res.json(elements)
+  
+  const data = Boolean(query.unique)
+    ? await elementServices.getElementByComponent(params.id)
+    : await elementServices.getElementsByComponent(
+      params.id,
+      query?.unique || true,
+      query?.order || 1,
+      query?.limit || null,
+      query?.fieldIndex || "index",
+      query?.prevIndex || 0
+    )
+
+  res.json(data)
 }
 
 
@@ -23,12 +28,7 @@ const getElement = async ({ params }, res) => {
 
     res.json(element)
 
-  } catch (error) {
-
-    if (error.message === 'ID no válido') {
-      return res.status(400).json({ error: error.message }) // bad request
-    }
-    
+  } catch (error) {  
     console.log(error)
     res.status(500).json({ error: 'Error en el servidor' })
   }

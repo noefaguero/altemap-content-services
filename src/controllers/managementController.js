@@ -14,11 +14,18 @@ const getProjectComponents = async ({ params }, res) => {
   res.json(projectComponents)
 }
 
-// primera carga (encabezado y primera pagina de elementos en dashboard)
+// encabezado de elementos en dashboard
 const getComponent = async ({ params }, res) => {
-  const componentElements = await componentServices.getComponent(params.id)
-
-  res.json(componentElements)
+  
+  try {
+    const componentElements = await componentServices.getComponent(params.id)
+    res.json(componentElements)
+    
+  } catch (error) {
+    if (error.message === 'ID no válido') {
+      return res.status(400).json({ error: error.message }) // bad request
+    }
+  }
 }
 
 const deleteElement = async ({ params }, res) => {
