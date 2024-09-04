@@ -11,12 +11,16 @@ exports.getElementById = async (id) => {
   }
 }
 
-exports.getElementsByComponent = async (id, unique, order, limit, fieldIndex, prevIndex) => {
+exports.getElementByComponent = async (id) => {
   try {
-    if (Boolean(unique)) {
-      return await Element.findOne({ component_id: id })
-    }
+      return await Element.findOne({ component_id: id }).lean()
+  } catch (error) {
+    throw error
+  }
+}
 
+exports.getElementsByComponent = async (id, order, limit, fieldIndex, prevIndex) => {
+  try {
     if (limit) {
       return await Element.find({ component_id: id, [fieldIndex]: { $gte: prevIndex } })
       .sort({ [fieldIndex]: order })
@@ -72,7 +76,7 @@ exports.deleteElement = async (component_id, element_id) => {
   } */
 
   // Eliminar clave ajena en el documento del componente
-  const removeFK = async () => {
+  const removeElementReferences = async () => {
     try {
       await Component.findByIdAndUpdate(
         component_id,
@@ -94,5 +98,5 @@ exports.deleteElement = async (component_id, element_id) => {
   }
 
   // Ejecutar transacción
-  return await transaction([/* findComponent,  */removeFK, removeElement]) // devuelve boleano
+  return await transaction([/* findComponent,  */removeElementReferences, removeElement]) // devuelve boleano
 }

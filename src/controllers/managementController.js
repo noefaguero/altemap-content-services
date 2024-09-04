@@ -5,13 +5,25 @@ const pageServices = require('../services/pageServices')
 
 
 const getOverview = async ({ params }, res) => {
-  const metrics = await projectServices.getMetrics(params.id)
-  res.json({ tool: "contents", ...metrics })
+  try {
+    const metrics = await projectServices.getMetrics(params.id)
+    res.json({ tool: "contents", ...metrics })
+    
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: "Error al obtener la vista general" })
+  }
 }
 
 const getProjectComponents = async ({ params }, res) => {
-  const projectComponents = await projectServices.getProjectComponents(params.id)
-  res.json(projectComponents)
+  try {
+    const projectComponents = await projectServices.getProjectComponents(params.id)
+    res.json(projectComponents)
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ error: "Error al obtener los componentes del proyecto" })
+  }
 }
 
 // encabezado de elementos en dashboard
@@ -22,9 +34,8 @@ const getComponent = async ({ params }, res) => {
     res.json(componentElements)
     
   } catch (error) {
-    if (error.message === 'ID no válido') {
-      return res.status(400).json({ error: error.message }) // bad request
-    }
+    console.log(error)
+    res.status(500).json({ error: "Error al obtener los componentes" })
   }
 }
 
@@ -35,13 +46,8 @@ const deleteElement = async ({ params }, res) => {
     res.json(result)
 
   } catch (error) {
-    if (error.message === "Elemento no encontrado") {
-      res.status(404).json({ error: "Elemento no encontrado" })
-
-    } else {
-      console.log(error)
-      res.status(500).json({ error: "Error al eliminar el elemento" })
-    }
+    console.log(error)
+    res.status(500).json({ error: "Error al eliminar el elemento" })
   }
 }
 

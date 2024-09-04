@@ -1,12 +1,17 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 
-// definicion del esquema de contenido, se utilizara para construir el formulario y validacion de sus elementos
-const contentSchemaSchema = new Schema({ 
-    name: {
+// definicion del esquema de los campos de contenido, se utilizara para construir el formulario y validacion de sus elementos
+const contentFieldsSchema = new Schema({ 
+    key: { // nombre del campo
         type: SchemaTypes.String,
-        required: [true, 'El nombre del campo en la especificacion del esquema de contenido es necesario']
+        unique: true,
+        required: [true, 'El nombre del campo en el esquema de contenido es necesario']
     },
-    type: { // input type
+    col_span: { // porciones que ocupara la columna en la tabla de gestión
+        type: SchemaTypes.Number, 
+        required: true,
+    },
+    type: { // input type en el formulario de gestión
         type: SchemaTypes.String,
         enum: {
             values: ['text', 'date', 'number', 'textarea', 'url'],
@@ -14,9 +19,9 @@ const contentSchemaSchema = new Schema({
         },
         required: [true, 'Es necesario especificar el tipo del campo']
     },
-    validations: { 
-        type: SchemaTypes.Array, // atributos html de validacion ['min="10"', 'max="50"'] => se usara join(' ') en cliente y split('=') en servidor
-        default: []
+    validation: { 
+        type: SchemaTypes.Map, // {min: 20, required: true}
+        default: {}
     }
 }, { _id: false })
 
@@ -26,7 +31,7 @@ const changelogSchema = new Schema({
         required: [true, 'El identificador del usuario es necesario'],
     },
     action: {
-        type: SchemaTypes.String, // accion#usuario
+        type: SchemaTypes.String, // 'accion#usuario'
     },
     createdAt: { 
         type: SchemaTypes.Date,
@@ -40,13 +45,13 @@ const componentSchema = new Schema({
         type: SchemaTypes.String,
         required: true
     },
-    content_fields: [contentSchemaSchema], // se utilizara para construir el contenido de un elemento
+    content_fields: [contentFieldsSchema], // se utilizara para construir el contenido de un elemento
     is_abstract: { 
         type: SchemaTypes.Boolean, // true si no existe un componente como tal, se usan sus datos para construir diferentes componentes
         default: false
     },
     is_hidden: {
-        type: SchemaTypes.Boolean,
+        type: SchemaTypes.Boolean, // false si temporalmente no se muestra en la web del cliente
         default: false
     },
     unique_element: {

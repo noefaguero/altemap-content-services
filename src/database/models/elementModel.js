@@ -28,7 +28,7 @@ const elementSchema = new Schema({
         const { REGEXS } = require('../../constants')
 
         const result = forEach(fields).forEach(field => {
-          if (!field.validations || field.validations.length === 0) return // este campo no tiene validacion
+          if (!field.validations || field.validations.length === 0) return // este campo no tiene validacion
           
           const [validationKey, validationValue] = field.validations.split('=')
           const fieldValue = contents[field.name]
@@ -36,29 +36,34 @@ const elementSchema = new Schema({
           let ex = null // se le asignará regex en caso de validacion de patrón
           // segun clave de validacion
           switch (validationKey) {
-            case 'accept':
-              return 
             case 'required':
               if (!fieldValue) {
                 this.feedbacks.push(`${field.name}: obligatorio`)
               }
-              break;
-            case 'accept': // ejemplo accept="image/jpeg". En este punto el campo debe proporcionar la ruta del archivo cargado 
-              ex = new RegExp(REGEXS.url.expression)
-              break;
+              break
             case 'pattern':
               ex = new RegExp(REGEXS[validationValue].expression)
-              break;
+              break
             case 'min':
               if (fieldValue > validationValue) {
                 this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
               }
-              break;
+              break
             case 'max':
               if (fieldValue > validationValue) {
                 this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
               }
-              break;
+              break
+            case 'minlength':
+              if (fieldValue > validationValue) {
+                this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+              }
+              break
+            case 'maxlength':
+              if (fieldValue > validationValue) {
+                this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+              }
+              break
           }
           // comprobar patrón
           if (ex && !ex.test(fieldValue)) {
