@@ -1,24 +1,33 @@
 const mongoose = require('mongoose')
 
 exports.transaction = async (operations) => {
-  const session = await mongoose.startSession()
-  session.startTransaction()
+	const session = await mongoose.startSession()
+	session.startTransaction()
 
-  try {
+	try {
 
-    let response
-    for (const operation of operations) {
-      response = await operation()
-    }
-    await session.commitTransaction()
-    return response
+		let response
+		for (const operation of operations) {
+			response = await operation()
+		}
+		await session.commitTransaction()
+		return response
 
-  } catch (error) {
-    await session.abortTransaction() //rollback
-    console.log(error)
-    throw error
+	} catch (error) {
+		await session.abortTransaction() //rollback
+		console.error(error)
+		throw error
 
-  } finally {
-    session.endSession()
-  }
+	} finally {
+		session.endSession()
+	}
+}
+
+exports.handleNotFound = (result, errorMessage) => {
+	if (!result) {
+		const error = new Error(errorMessage)
+		error.status = 404
+		throw error
+	}
+	return result
 }

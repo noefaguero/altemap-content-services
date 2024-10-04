@@ -1,27 +1,23 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
+const Component = require('./componentModel')
 
 const projectSchema = new Schema({
+    _id: {
+        type: SchemaTypes.ObjectId,
+        auto: false // se proporciona desde la BD altemap-users
+    },
     name: {
         type: SchemaTypes.String,
         required: true
     },
     pages: {
-        type: [{
-            type: SchemaTypes.ObjectId,
-            ref: 'Page'
-        }]
+        type: SchemaTypes.String,
+        required: true
     },
     components: {
         type: [{
             type: SchemaTypes.ObjectId,
-            ref: 'Component'
-        }]
-    },
-    media: { // los componentes pueden compartir archivos
-        type: [{
-            type: SchemaTypes.ObjectId,
-            ref: 'Media',
-            default: []
+            ref: Component
         }]
     },
     metrics: {
@@ -36,5 +32,6 @@ const projectSchema = new Schema({
 })
 
 const Project = model('Project', projectSchema)
+
 
 module.exports = Project

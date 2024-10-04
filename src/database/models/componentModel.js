@@ -1,14 +1,15 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
+const Element = require('./elementModel')
 
 // definicion del esquema de los campos de contenido, se utilizara para construir el formulario y validacion de sus elementos
-const contentFieldsSchema = new Schema({ 
+const contentFieldsSchema = new Schema({
     key: { // nombre del campo
         type: SchemaTypes.String,
         unique: true,
         required: [true, 'El nombre del campo en el esquema de contenido es necesario']
     },
-    col_span: { // porciones que ocupara la columna en la tabla de gestión
-        type: SchemaTypes.Number, 
+    col_span: { // porcion de 10 que ocupara la columna en la tabla de gestión
+        type: SchemaTypes.Number,
         required: true,
     },
     type: { // input type en el formulario de gestión
@@ -19,25 +20,13 @@ const contentFieldsSchema = new Schema({
         },
         required: [true, 'Es necesario especificar el tipo del campo']
     },
-    validation: { 
+    validation: {
         type: SchemaTypes.Map, // {min: 20, required: true}
         default: {}
     }
-}, { _id: false })
-
-const changelogSchema = new Schema({
-    externalUserId: {
-        type: SchemaTypes.String, 
-        required: [true, 'El identificador del usuario es necesario'],
-    },
-    action: {
-        type: SchemaTypes.String, // 'accion#usuario'
-    },
-    createdAt: { 
-        type: SchemaTypes.Date,
-        default: Date.now 
-    }
-}, { _id: false })
+}, {
+    _id: false
+})
 
 
 const componentSchema = new Schema({
@@ -46,7 +35,7 @@ const componentSchema = new Schema({
         required: true
     },
     content_fields: [contentFieldsSchema], // se utilizara para construir el contenido de un elemento
-    is_abstract: { 
+    is_abstract: {
         type: SchemaTypes.Boolean, // true si no existe un componente como tal, se usan sus datos para construir diferentes componentes
         default: false
     },
@@ -61,26 +50,25 @@ const componentSchema = new Schema({
     elements: {
         type: [{
             type: SchemaTypes.ObjectId,
-            ref: 'Element',
+            ref: Element,
             default: []
         }],
     },
-    elements_lenght: {
+    elements_length: {
         type: SchemaTypes.Number,
         default: 0
     },
-    media: {
+    path_pages: {
         type: [{
-            type: SchemaTypes.ObjectId,
-            ref: 'Media',
-            default: []
-        }]
-    },
-    changelog: [changelogSchema]
+            type: SchemaTypes.String
+        }],
+        required: [true, 'Es necesario especificar las rutas en las que se mostrara el componente']
+    }
 }, {
     timestamps: true
 })
 
 const Component = model('Component', componentSchema)
+
 
 module.exports = Component

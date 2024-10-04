@@ -1,11 +1,10 @@
-const elementServices = require('../services/elementServices')
+const elementServices = require('../../services/elementServices')
 
 
+// elementos múltiples a partir del id del componente
 const getComponentElements = async ({ params, query }, res) => {
   try {
-    const data = query?.unique === "true" // campo obligatorio si es un único elemento
-      ? await elementServices.getElementByComponent(params.id) // elemento único
-      : await elementServices.getElementsByComponent(
+    const data = await elementServices.getElementsByComponent(
         params.id,
         query?.order || 1,
         query?.limit || null,
@@ -16,7 +15,20 @@ const getComponentElements = async ({ params, query }, res) => {
     res.json(data)
     
   } catch (error) {
-    console.log(error)
+    console.error(error)
+    res.status(500).json({ error: "Error al obtener los elementos del componente" })
+  }
+}
+
+
+// elemento único a partir del id del componente
+const getComponentElement = async ({ params }, res) => {
+  try {
+    const data = await elementServices.getElementByComponent(params.id) // elemento único
+    res.json(data)
+    
+  } catch (error) {
+    console.error(error)
     res.status(500).json({ error: "Error al obtener los elementos del componente" })
   }
 }
@@ -27,13 +39,14 @@ const getElement = async ({ params }, res) => {
     const element = await elementServices.getElementById(params.id)
 
     if (Object.keys(element).length === 0) {
-      return res.status(404).json({ error: 'Elemento no encontrado' })
+      res.status(404).json({ error: 'Elemento no encontrado' })
+      return
     }
 
     res.json(element)
 
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({ error: "Error al obtener el elemento" })
   }
 }
@@ -41,5 +54,6 @@ const getElement = async ({ params }, res) => {
 
 module.exports = {
   getComponentElements,
+  getComponentElement,
   getElement
 }

@@ -1,40 +1,65 @@
 const multer = require('multer')
+const { UPLOADS_URI } = require('../constants')
 
-
-const setFileName = (file, cb) => { // cb es la funcion de callback
-    const extension = file.originalname.slice(file.originalname.lastIndexOf('.'))
-    const filename = `${file.fieldname}_${Date.now()}.${extension}`
-    cb(null, filename)
-}
-
-const setFileFilter = (req, file, cb, regex, str) => {
-    const extension = file.originalname.slice(file.originalname.lastIndexOf('.'))
-    const allowedTypes = regex
-
-    if (allowedTypes.test(extension) && allowedTypes.test(file.mimetype)) {
-        return cb(null, true)
-    } else {
-        cb(new Error(`Solo se permiten archivos ${str}`))
+// tamaño limite, mensaje de error y expresion regular de formatos permitidos según el atributo name
+const TYPES = {
+    imagen: {
+        limit: 1024 * 1024, // 1MB
+        regex: '/jpeg|jpg|png|webp/i',
+        msg: 'jpeg, jpg, png y webp'
+    },
+    pdf: {
+        limit: 1024 * 1024 * 5, // 5MB
+        regex: '/pdf/i',
+        msg: 'pdf'
     }
 }
 
+// asignar nombre al archivo
+const setFileName = (file, cb) => { // cb es la funcion de callback
+    const ext = `.${file.mimetype.split('/')[1]}`
+    // eliminar caracteres no alfanumericos
+    const uniformName = file.originalname.replace(ext, '').toLowerCase().replace(/[^\w\s-]/g, '_')
+    const filename = `${uniformName}_${Date.now() / 60000}${ext}`
+    cb(null, filename)
+}
 
-// configuracion de carga de imagenes
-exports.uploadImage = multer({
+// validar el tipo de archivo
+const setFileFilter = (req, file, cb, regex, msg) => {
+    if (regex.test(file.mimetype.split('/')[1])) {
+        return cb(null, true)
+    } else {
+        cb(new Error(`Solo se permiten archivos ${msg}`))
+    }
+}
+
+// asignar ruta de destino del archivo
+const setPath = ({ project, params }, file) => path.join(
+    UPLOADS_URI, 'delivery', project, params.component, file.filename
+) // al directorio delivery    
+
+
+// OBJETO DE CONFIGUARACION ////////////////////////////////////////////////////////////////////////////
+exports.multerConfig = {
     storage: multer.diskStorage({
-        destination: (req, file, cb) => cb(null, `uploads/delivery/${req.params.id_project}`), // carpeta de entrega de contenidos del projecto
+        destination: (req, file, cb) => cb(null, setPath(req, file)),
         filename: (req, file, cb) => setFileName(file, cb)
     }),
-    limits: { fileSize: 1024 * 1024 * 1 }, // limite de 1MB
-    fileFilter: (req, file, cb) => setFileFilter(req, file, cb, '/jpeg|jpg|png|webp/i', 'jpeg, jpg y png')
-})
-
-// configuracion de carga de pdf
-exports.uploadPDF = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => cb(null, 'uploads/delivery/'),
-        filename: (req, file, cb) => setFileName(file, cb)
-    }),
-    limits: { fileSize: 1024 * 1024 * 5 }, // limite de 5MB
-    fileFilter: (req, file, cb) => setFileFilter(req, file, cb, '/pdf/i', 'pdf')
-})
+    limits: file => {
+        return { fileSize: TYPES[file.fieldname].limit }
+    },
+    limits: {
+        fileSize: (req, file, cb) => {
+            return TYPES[file.fieldname]?.limit || 1024 * 1024 // 1MB por defecto
+        }
+    },
+    fileFilter: (req, file, cb) => {
+        const fileFilter = setFileFilter(
+            req,
+            file,
+            cb,
+            TYPES[file.fieldname].regex,
+            TYPES[file.fieldname].msg
+        )
+    }
+}
