@@ -1,16 +1,16 @@
 const express = require('express')
 const mongoose = require('mongoose')
 const { agenda, startAgenda } = require('./config/agenda')
+const { ALLOWED_FIELDS } = require('./utils/constants')
+const { CONTENT_HOST } = process.env
 
 // CONEXION MONGODB
-mongoose.connect(process.env.STRING_CONTENTS_DB).catch(error => console.error(error))
+mongoose.set('transactionAsyncLocalStorage', true)
+    .connect(process.env.CONTENTS_DB)
+    .catch(error => console.error(error))
 
 // INICIAR SERVIDOR
 const app = express()
-
-// MIDDLEWARES
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
 
 // SERVIR RUTAS
 app.use('/content-services', require('./routes'))
@@ -21,12 +21,12 @@ app.use((error, req, res, next) => {
 })
 
 // ESCUCHAR CONEXIONES
-const URL = process.env.CONTENT_URL
-const PORT = URL.split(':')[2]
-agenda.on('ready', () => { // asegurar configuración de agenda
-    startAgenda()
+const PORT = CONTENT_HOST.split(':')[2]
+agenda.on('ready', async () => { // asegurar configuración de agenda
+    await startAgenda()
+    await ALLOWED_FIELDS.load()
     app.listen(
         PORT, 
-        () => console.log(`\n\t\x1b[1m%s\x1b[0m \n\t-> Local: ${URL}\n`, 'CONTENT-SERVICES READY')
+        () => console.log(`\n\t\x1b[1m%s\x1b[0m \n\t-> Local: ${CONTENT_HOST}\n`, 'CONTENT-SERVICES READY')
     )
 })

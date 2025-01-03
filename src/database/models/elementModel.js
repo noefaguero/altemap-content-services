@@ -1,36 +1,8 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
 const Component = require('./componentModel')
-const Project = require('./projectModel')
+const { addElementReference, removeElementReference } = require('../../services/componentServices')
 
-
-const mediaSchema = new Schema({
-	field_name: {
-		type: SchemaTypes.String,
-		required: [true, 'El nombre del campo del archivo es necesario'],
-	},
-	path: {
-		// "/664d16d9273c58e8d0517669/6662148f51be4483244edc7f/hospital.webp"
-		type: SchemaTypes.String, 
-		required: [true, 'La ruta de almacenamiento del archivo es necesaria'],
-	},
-	content_type: {
-		type: SchemaTypes.String,
-		enum: {
-			values: ['image', 'pdf'],
-			message: props => `No se aceptan los medios de tipo ${props.value}`
-		},
-		required: [true, 'Es necesario especificar el tipo de medio']
-	},
-	size: {
-		type: SchemaTypes.Number, // en kb
-		required: [true, 'El tamaño del archivo es necesario']
-	}
-}, {
-	timestamps: true,
-	_id: false
-})
-
-
+// SCHEMA /////////////////////////////////////////////////////////////////////////////
 const elementSchema = new Schema({
 	index: {
 		type: SchemaTypes.Number,
@@ -38,7 +10,7 @@ const elementSchema = new Schema({
 	},
 	component_id: {
 		type: SchemaTypes.ObjectId,
-		ref: Component,
+		ref: 'Component',
 		required: [true, 'El componente del elemento es necesario']
 	},
 	is_hidden: {
@@ -49,160 +21,126 @@ const elementSchema = new Schema({
 		type: SchemaTypes.Mixed,
 		required: true,
 		validate: {
-			validator: async (contents) => {
+			validator: async function (contents) {
 				// consultar el componente
-				const component = await Component.findById(this.component_id, 'content_schema')
-				const fields = component.content_schema
+				const component = await Component.findById(this.component_id) 
+				const schema = component.toObject().content_fields
 
 				this.feedbacks = [] // mensajes de no validacion
-				const { REGEXS } = require('../../constants')
+				const { REGEXS } = require('../../utils/constants')
+				
+				// iterar sobre los campos del schema
+				schema.forEach((fieldSchema) => {
 
-				const result = fields.forEach(field => {
+					if (!fieldSchema?.validation || Object.keys(fieldSchema.validation).length === 0) {
+						return // este campo no tiene validacion
+					}
 
-					if (!field.validation || Object.keys(field.validation).length === 0) return // este campo no tiene validacion
-					
-					Object.entries(validation).map(([validationKey, validationValue]) => {
-						const fieldValue = contents[field.name]
-						let ex = null // se le asignará regex en caso de validacion de patrón
-
+					const fieldValue = contents[fieldSchema.key]
+					Object.entries(fieldSchema.validation).forEach(([validationKey, validationValue]) => {
+						let ex = null // se le asignará regexp en caso de validacion de patrón
 						// segun clave de validacion
 						switch (validationKey) {
 							case 'required':
 								if (!fieldValue) {
-									this.feedbacks.push(`${field.name}: obligatorio`)
+									this.feedbacks
+										.push(`${fieldSchema.key}: obligatorio`)
 								}
 								break
 							case 'pattern':
 								ex = new RegExp(REGEXS[validationValue].expression)
 								break
 							case 'min':
-								if (fieldValue > validationValue) {
-									this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+								if (fieldValue < validationValue) {
+									this.feedbacks
+										.push(`${fieldSchema.key}: mínimo ${validationValue}`)
 								}
 								break
 							case 'max':
 								if (fieldValue > validationValue) {
-									this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+									this.feedbacks
+										.push(`${fieldSchema.key}: mínimo ${validationValue}`)
 								}
 								break
 							case 'minlength':
-								if (fieldValue > validationValue) {
-									this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+								if (fieldValue.length < validationValue) {
+									this.feedbacks
+										.push(`${fieldSchema.key}: mínimo ${validationValue}`)
 								}
 								break
 							case 'maxlength':
-								if (fieldValue > validationValue) {
-									this.feedbacks.push(`${field.name}: mínimo ${validationValue}`)
+								if (fieldValue.length > validationValue) {
+									this.feedbacks
+										.push(`${fieldSchema.key}: mínimo ${validationValue}`)
 								}
 								break
 						}
 						// comprobar patrón
 						if (ex && !ex.test(fieldValue)) {
-							this.feedbacks.push(`${field.name}: ${REGEXS[validationValue].message}`)
+							this.feedbacks
+								.push(`${fieldSchema.key}: ${REGEXS[validationValue].message}`)
 						}
 					})
+					return this.feedbacks.length === 0 // si no hay errores, devuelve true
 				})
-
-				return result // boleano
 			}, // fin de validator
 			message: props => this.feedbacks
 		}
-	},
-	media: [mediaSchema]
+	}
 }, {
 	timestamps: true
 })
 
 
-// MIDDLEWARES //////////////////////////////////////////////////////////////////
-
-// UTILS
-const updateMediaLog = async (media, increment) => {
-	const totalSize = media.reduce((acu, file) => acu += file.size, 0)
-	const projectId = media[0].path.substring(0, file.path.index0f('/'))
-
-	await Project.findByIdAndUpdate(
-		projectId, 
-		{
-			metrics: {
-				media: {
-					files: { $inc: increment 
-						? totalSize 
-						: totalSize * -1 
-					},
-					total_kb: { $inc: increment 
-						? totalSize 
-						: totalSize * -1 
-					}
-				}
-			}
-		}
-	)
-}
-
-// antes de crear/actualizar elementos
-elementSchema.pre('save', async (next) => {
+// MIDDLEWARES ///////////////////////////////////////////////////////////////////////
+// NOTA: no usar next() en funciones asíncronas. En su lugar lanzar errores.
+// se ejecuta antes de crear un elemento
+elementSchema.pre('save', async function () {
 	try {
-		// 1. Asignar indice si es un documento nuevo
-		if (this.isNew) {
-			if (this.index < 0) { // 1 => primero, -1 => ultimo
-				const count = await this.constructor.find(
-					{ component_id: this.component_id }
-				).countDocuments()
-				this.index = ++count
-			}
+		// asignar valor del indice
+		if (this.index < 0) { // 1 => primero, -1 => ultimo
+			let count = await this.constructor.find(
+				{ component_id: this.component_id }
+			).countDocuments()
+			this.index = ++count
 		}
 
-		// 2. Actualizar registro de medios en el documento del proyecto
-		await updateMediaLog(this.media, true)
+		// añadir referencia en el componente
+		await addElementReference(this._id.toString(), this.component_id.toString())
 
 	} catch (error) {
-		return next(error)
+		throw error
 	}
-
-	next()
 })
 
-// después de eliminar
-elementSchema.post('remove', async (doc, next) => {
+
+// se ejecuta después de eliminar un elemento
+elementSchema.post('findOneAndDelete', async function (doc) {
 	try {
-		// 1. Actualizar registro de medios del proyecto
-		if (doc?.media.length > 0) {
-			const totalSize = doc.media.reduce((acu, file) => acu += file.size, 0)
-			const projectId = doc.media[0].path.substring(0, file.path.index0f('/'))
-
-			await Project.findByIdAndUpdate(
-				projectId, 
-				{
-					metrics: {
-						media: {
-							files: { $inc: - media.length },
-							total_kb: { $inc: - totalSize }
-						}
-					}
-				}
-			)
-		}
-
-		// 2. Reordenar indices
+		// reordenar los indices de los elementos posteriores
 		const deletedIndex = doc.index
-		await this.constructor.updateMany(
+		await doc.constructor.updateMany(
 			{
-				component_id: doc.component_id,
+				component_id: doc.component_id.toString(),
 				index: { $gt: deletedIndex }
 			},
 			{ $inc: { index: -1 } }
 		)
 
+		// eliminar referencia en el componente
+		await removeElementReference(doc._id.toString(), doc.component_id.toString())
+
 	} catch (error) {
-		return next(error)
+		throw error
 	}
-	next()
 })
 
-// método estatico para cambiar index (se necesita el índice previo) 
+
+// STATIC FUNCTIONS //////////////////////////////////////////////////////////////////
+
+// para cambiar index (se necesita el índice previo) 
 // se usa en drag and drop
-/* elementSchema.statics.changeIndex = async (id, origin, newIndex) => {
+/* elementSchema.statics.changeIndex = async function (id, origin, newIndex) {
 	try {
 		await findByIdAndUpdate(id, { index: newIndex })
 
@@ -239,6 +177,5 @@ elementSchema.post('remove', async (doc, next) => {
 
 // crear modelo
 const Element = model('Element', elementSchema)
-
 
 module.exports = Element

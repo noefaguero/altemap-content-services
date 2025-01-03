@@ -1,5 +1,4 @@
 const { Schema, model, SchemaTypes } = require('mongoose')
-const Component = require('./componentModel')
 
 const projectSchema = new Schema({
     _id: {
@@ -10,21 +9,30 @@ const projectSchema = new Schema({
         type: SchemaTypes.String,
         required: true
     },
-    pages: {
-        type: SchemaTypes.String,
-        required: true
-    },
     components: {
         type: [{
             type: SchemaTypes.ObjectId,
-            ref: Component
+            ref: 'Component'
         }]
+    },
+    media: {
+		type: [{
+            type: SchemaTypes.ObjectId, 
+			ref: 'Media'
+        }],
+    },
+    component_media: { // relación componente-medios
+        type: SchemaTypes.Map,
+        of: [{
+            type: SchemaTypes.ObjectId,
+            ref: 'Media'
+        }],
     },
     metrics: {
         requests: { type: Schema.Types.Number },
         media: {
-            files: { type: Schema.Types.Number },
-            total_kb: { type: Schema.Types.Number }
+            total_files: { type: Schema.Types.Number },
+            total_kb: { type: Schema.Types.Number } // en kb con dos decimales
         }
     }
 }, {
@@ -32,6 +40,5 @@ const projectSchema = new Schema({
 })
 
 const Project = model('Project', projectSchema)
-
 
 module.exports = Project

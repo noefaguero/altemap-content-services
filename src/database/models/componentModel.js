@@ -1,5 +1,4 @@
-const { Schema, model, SchemaTypes } = require('mongoose')
-const Element = require('./elementModel')
+const { Schema, model, SchemaTypes } = require('mongoose') 
 
 // definicion del esquema de los campos de contenido, se utilizara para construir el formulario y validacion de sus elementos
 const contentFieldsSchema = new Schema({
@@ -8,7 +7,7 @@ const contentFieldsSchema = new Schema({
         unique: true,
         required: [true, 'El nombre del campo en el esquema de contenido es necesario']
     },
-    col_span: { // porcion de 10 que ocupara la columna en la tabla de gestión
+    col_size: { // porcion de 10 que ocupara la columna en la tabla de gestión
         type: SchemaTypes.Number,
         required: true,
     },
@@ -22,6 +21,7 @@ const contentFieldsSchema = new Schema({
     },
     validation: {
         type: SchemaTypes.Map, // {min: 20, required: true}
+        of: SchemaTypes.Mixed,
         default: {}
     }
 }, {
@@ -36,7 +36,7 @@ const componentSchema = new Schema({
     },
     content_fields: [contentFieldsSchema], // se utilizara para construir el contenido de un elemento
     is_abstract: {
-        type: SchemaTypes.Boolean, // true si no existe un componente como tal, se usan sus datos para construir diferentes componentes
+        type: SchemaTypes.Boolean, // true si es una entidad propia cuyos datos se usan para construir diferentes componentes
         default: false
     },
     is_hidden: {
@@ -50,9 +50,9 @@ const componentSchema = new Schema({
     elements: {
         type: [{
             type: SchemaTypes.ObjectId,
-            ref: Element,
-            default: []
+            ref: 'Element'
         }],
+        default: []
     },
     elements_length: {
         type: SchemaTypes.Number,
@@ -62,13 +62,12 @@ const componentSchema = new Schema({
         type: [{
             type: SchemaTypes.String
         }],
-        required: [true, 'Es necesario especificar las rutas en las que se mostrara el componente']
+        default: []
     }
 }, {
     timestamps: true
 })
 
 const Component = model('Component', componentSchema)
-
 
 module.exports = Component
