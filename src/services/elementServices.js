@@ -1,6 +1,5 @@
 const Element = require('../database/models/elementModel')
-const Component = require('../database/models/componentModel')
-const { transaction, handleNotFound } = require('../utils')
+const { handleNotFound } = require('../utils/helpers')
 
 
 exports.validateElement = async (data) => {
@@ -8,16 +7,13 @@ exports.validateElement = async (data) => {
 		console.log(data)
 		const newElement = new Element(data)
 		console.log(newElement)
-		const validationErrors = await newElement.validate()
-		return validationErrors
+		return await newElement.validate()
 
 	} catch (error) {
 		throw error
 	}
 }
 
-
-// QUERIES ///////////////////////////////////////////////////////////////////////////
 
 exports.getElementById = async (id) => {
 	try {
@@ -31,7 +27,7 @@ exports.getElementById = async (id) => {
 }
 
 
-exports.getElementByComponent = async (id) => {
+exports.getUniqueElementByComponent = async (id) => {
 	try {
 		return handleNotFound(
 			await Element.findOne({ component_id: id }).lean(),
@@ -42,112 +38,96 @@ exports.getElementByComponent = async (id) => {
 	}
 }
 
-exports.getElementsByComponent = async (id, order, limit, fieldIndex, prevIndex) => {
+
+exports.getElementsByComponent = async (id, sortField = 'index', sortOrder = 1, filters = [], limit = 30, cursor = '') => {
 	try {
-		if (limit) {
-			return handleNotFound(
-				await Element.find({ component_id: id, [fieldIndex]: { $gte: prevIndex } })
-					.sort({ [fieldIndex]: order })
-					.limit(limit)
-					.lean(),
-				'Componente no encontrado'
-			)
+		// consulta con filtros
+		const query = filters.length > 0 ? { component_id: id, ...filters } : { component_id: id }
+
+		// ordenación por indice o campo de contenido y cursor
+		const sort = {}
+		const operator = sortOrder === 1 ? '$gt' : '$lt'
+
+		if (sortField === 'index') {
+			// orden por indice
+			sort.index = sortOrder
+			// cursor simple (index por defecto)
+			if (cursor) {
+				query.index = { [operator]: cursor }
+			}
+		} else {
+			// orden por campo de contenido
+			sort[`content.${sortField}`] = sortOrder
+			// indice como segundo orden para desempate
+			sort.index = 1
+			// cursor compuesto
+			if (cursor.split('#').length === 2) {
+				const cursors = cursor.split('#')
+				query[`content.${sortField}`] = { [operator]: cursors[0] }
+				query.index = { $gt: cursors[1] }
+			}
 		}
 
+		// NOTA: si se ordena por campo String, collation asegura orden alfabético (insensible a diacríticos españoles y mayusculas)
+		const results =  await Element.find(query)
+			.collation({ locale: 'es', strength: 1 }) 
+			.sort(sort)
+			.limit(limit)
+			.lean()
+		
+		// información de paginación
+		const pageSize = results.length
+		const hasNextPage = pageSize === limit
+		let lastElement, nextCursor
+		if (hasNextPage) {
+			lastElement = results[pageSize - 1]
+			nextCursor = sortField === 'index'
+				? lastElement.index // cursor simple
+				: `${lastElement.index}#${lastElement.content[sortField]}` // cursor compuesto
+		}
+		
+		return {
+			page_size: pageSize,
+			has_next_page: hasNextPage,
+			next_cursor: nextCursor,
+			results
+		}
+
+	} catch (error) {
+		throw error
+	}
+}
+
+
+exports.postElement = async (data) => {
+	try {
+		const newElement = new Element(data)
+		return await newElement.save()
+	} catch (error) {
+		throw error
+	}
+}
+
+
+exports.putElement = async (elementId, elementData) => {
+	try {
 		return handleNotFound(
-			await Element.find({ component_id: id, [fieldIndex]: { $gte: prevIndex } })
-				.sort({ [fieldIndex]: order })
-				.lean()
+			await Element.findByIdAndUpdate(elementId, elementData, { new: true }),
+			"Elemento no encontrado"
 		)
-
 	} catch (error) {
 		throw error
 	}
 }
 
 
-// MUTATIONS ////////////////////////////////////////////////////////////////////////
-
-// POST
-exports.postElement = async (component_id, data) => {
-	let element
-	// crear el elemento
-	const createElement = async () => {
-		try {
-			const newElement = new Element(data)
-			await newElement.save()
-			element = newElement
-		} catch (error) {
-			throw error
-		}
-	}
-
-	// añadir referencia en el documento del componente
-	const addElementReference = async () => {
-		if (!element._id) {
-			const error = new Error('No se ha proporcionado un ID de elemento')
-			error.status = 400
-			throw error
-		}
-
-		try {
-			return await Component.findByIdAndUpdate(
-				component_id,
-				{
-					$push: { elements: element._id },
-					$inc: { elements_length: +1 }
-				}
-			).lean()
-
-		} catch (error) {
-			throw error
-		}
-	}
-
-	// ejecutar transacción
-	return await transaction([createElement, addElementReference]) // devuelve el elemento creado
-}
-
-
-// PUT
-exports.putElement = async (element_id, data) => {
+exports.deleteElement = async (elementId) => {
 	try {
-		return await Element.findByIdAndUpdate(element_id, data, { new: true }).lean()
+		return handleNotFound(
+			await Element.findByIdAndDelete(elementId),
+			"Elemento no encontrado"
+		)
 	} catch (error) {
 		throw error
 	}
-}
-
-
-// DELETE
-exports.deleteElement = async (component_id, element_id) => {
-	console.log('component_id: ', component_id)
-	console.log('element_id: ', element_id)
-	let filepath = []
-	// Eliminar clave ajena en el documento del componente
-	const removeElementReferences = async () => {
-		try {
-			await Component.findByIdAndUpdate(
-				component_id,
-				{
-					$pull: { elements: id },
-					$inc: { elements_length: -1 }
-				}
-			).lean()
-		} catch (error) {
-			throw error
-		}
-	}
-
-	// Eliminar el elemento
-	const removeElement = async () => {
-		try {
-			await Element.findByIdAndDelete(element_id).lean()
-		} catch (error) {
-			throw error
-		}
-	}
-
-	// Ejecutar transacción
-	return await transaction([removeElementReferences, removeElement]) // devuelve boleano
 }
