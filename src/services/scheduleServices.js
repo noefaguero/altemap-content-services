@@ -1,5 +1,6 @@
 const { agenda } = require('../config/agenda')
 
+
 exports.getJobsByProject = async (projectId) => {
     try {
         const collection = agenda._mdb.collection('schedule')
@@ -7,8 +8,8 @@ exports.getJobsByProject = async (projectId) => {
         return await collection.find({
             'data.project': projectId,
             nextRunAt: { $gte: now }
-        })
-        .toArray()
+        }).toArray()
+
     } catch (error) {
         throw error
     }
