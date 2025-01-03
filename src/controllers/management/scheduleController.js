@@ -1,14 +1,8 @@
-const { validateElement } = require('../../services/elementServices')
+const { validateElement, getElementById } = require('../../services/elementServices')
 const scheduleServices = require('../../services/scheduleServices')
-const elementController = require('./elementController')
-const mediaController = require('./mediaController')
+const elementServices = require('../../services/elementServices')
+const projectElementMediaController = require('./projectElementMediaController')
 const { agenda } = require('../../config/agenda')
-
-
-const execNow = (date) => {
-    const diff = date - (Date.now() / 1000)
-    return diff <= 60 // si es menos de un min => true, el cambio se hará instantaneo
-}
 
 // GET
 const getJobsByProject = async (project) => {
@@ -23,108 +17,118 @@ const getJobsByProject = async (project) => {
 // POST
 const postElementInQueue = async (req, res) => {
     const { body, params, query, project } = req
-/* req.files.push({
-            field_name: file.fieldname,
-            path: file.destination,
-            size: file.size,
-            content_type: file.mimetype
-        }) */
-    let data = {}
-    console.log(req?.files)
-    return
-    if (req?.files) {
-        data.media = req.files.map(file => {
-            // actualizar campo con la URL
-            body[file.fieldname] = `${process.env.CONTENT_URL}${file.destination}`
-            // devolver metadatos
-            return {
-                field_name: file.fieldname,
-                path: file.destination,
-                size: file.size,
-                content_type: file.mimetype
-            }
-        })
-    }
 
-    data = { 
-        component_id: params.component_id,
-        index: 1, // se inserta al principio
+    const data = { 
+        component_id: params.id,
+        index: -1, // se inserta al final
         content: body,
-        ...data
     }
 
     try {
-        if (!execNow(query.date)) {
+        // si no se ha pasado fecha se ejecuta ahora
+        if (query?.date) {
             // validar objeto
-            const validationErrors = validateElement(data)
-            if (validationErrors && req?.media) {
-                // eliminar archivos cargados
-                await mediaController.deleteDeliveryFiles(project, body.media.map(file => file.path))
-            }
-
+            const validationErrors = await validateElement(data)
             if (validationErrors) {
+                // eliminar archivos precargados si existen
+                if (data?.media.length > 0) {
+                    await projectElementMediaController.revertMedia(
+                        data.media.map(file => file._id), 
+                        project, 
+                        data.component_id
+                    )
+                }
                 res.status(400).json({ error: validationErrors.errors }) // bad request
                 return
             }
 
             // programar en fecha
-            await agenda.schedule(
+            const element = await agenda.schedule(
                 query.date,
                 'post-element',
-                { data, project, component: params.component_id } // job.attrs.data
+                { 
+                    data, 
+                    project, 
+                    component: params.id
+                } // job.attrs.data
             )
-            res.status(200).json({ message: 'Inserción del elemento programado correctamente' })
+            res.json({
+                message: 'Inserción del elemento programada correctamente',
+                element: element
+            })
             return
         }
         // operacion directa
-        await elementController.postElement(project, params.component_id, data)
-        res.status(200).json({ message: 'Elemento publicado correctamente' })
+        const element = await projectElementMediaController.postElementWithMedia(data, project, data.component_id)
+        res.status(201).json(element)
 
     } catch (error) {
         console.log(error)
-        res.status(500)
+        error.name === 'ValidationError'
+			? res.status(400).json({ error: error.message })
+			: res.status(500)
     }
 }
 
 
 // PUT
 const putElementInQueue = async (req, res) => {
-    const { body, params, query, files, project } = req
+    const { body, params, query, project } = req
     const data = {
-        component_id: params.component_id,
-        content: body,
-        media: files
+        content: body
     }
+    // obtener elemento actual
+    const oldElement = await elementServices.getElementById(params.id)
+    const componentId = oldElement.component_id
 
     try {
-
-        if (!execNow(query.date)) {
-            // obtener elemento actual
-            const element = Element.findById(params.element_id)
-            // copia por valor sobreescribiendo las propiedades
-            const updatedElement = { ...element, ...data }
+        if (query?.date) {
+            // copia por valor DEL CONTENIDO sobreescribiendo antiguos valores
+            const updatedContent = { ...oldElement.content, ...data.content }
+            // eliminar propiedad temporal "media" (objeto con array de nuevos archivos de cada campo)
+            if (updatedContent?.media) {
+                delete updatedContent.media
+            }
+            // actualizar propiedades del elemento
+            const updatedElement = { ...oldElement, content: updatedContent }
             // validar elemento
             const validationErrors = await validateElement(updatedElement)
             if (validationErrors) {
+                // eliminar archivos precargados si existen
+                if (data?.media.length > 0) {
+                    await projectElementMediaController.revertMedia(data.content.media, project, componentId)
+                }
                 res.status(400).json({ error: validationErrors.errors }) // bad request
                 return
             }
+
             // programar
-            await agenda.schedule(
+            const element = await agenda.schedule(
                 query.date,
                 'put-element',
-                { data, project, element: params.element_id } // job.attrs.data
+                { 
+                    data, 
+                    element: params.id, 
+                    project, 
+                    component: componentId
+                } // job.attrs.data
             )
-            res.status(200).json({ message: 'Actualización de elemento programada correctamente' })
+            res.json({ 
+                message: 'Actualización del elemento programada correctamente',
+                element
+            })
             return
         }
 
         // operacion directa
-        await elementController.putElement(project, params.element_id, data)
-        res.status(200).json({ message: 'Elemento actualizado correctamente' })
+        const element = await projectElementMediaController.putElementWithMedia(data, params.id, componentId, project)
+        res.json(element)
+
     } catch (error) {
         console.log(error)
-        res.status(500)
+        error.name === 'ValidationError'
+			? res.status(400).json({ error: error.message })
+			: res.status(500)
     }
 }
 
@@ -132,24 +136,28 @@ const putElementInQueue = async (req, res) => {
 // DELETE
 const deleteElementInQueue = async (req, res) => {
     const { params, query, project } = req
-    console.log(execNow(query.date))
+
     try {
-        if (!execNow(query.date)) {
-            console.log(1)
+        if (query?.date) {
             // programar
-            await agenda.schedule(
+            const element = await agenda.schedule(
                 query.date,
                 'delete-element',
-                { project, element: params.element_id } // job.attrs.data
+                { 
+                    project, 
+                    element: params.id 
+                } // job.attrs.data
             )
-            res.status(200).json({ message: 'Eliminación de elemento programado correctamente' })
+            res.json({ 
+                message: 'Eliminación de elemento programada correctamente',
+                element
+            })
             return
         }
 
         // operacion directa
-        console.log(2)
-        await elementController.deleteElement(project, params.element_id)
-        res.status(200).json({ message: 'Elemento eliminado correctamente' })
+        const element = await projectElementMediaController.deleteElementWithMedia(params.id, project)
+        res.json(element)
 
     } catch (error) {
         console.log(error)

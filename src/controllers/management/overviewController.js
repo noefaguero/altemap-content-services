@@ -13,13 +13,13 @@ const getOverview = async ({ project }, res) => {
         // agrupar los trabajos por fecha
         const jobsByDate = jobs.reduce((acu, job) => {
             const key = job.nextRunAt
-            if (!acu[key]) {
+            /* if (!acu[key]) {
                 acu[key] = []
-            }
+            } */
+            acu[key] ??= []
             acu[key].push(job)
             return acu
         }, {})
-
 
         res.json({
             tool: "contents",
@@ -31,7 +31,7 @@ const getOverview = async ({ project }, res) => {
 
     } catch (error) {
         console.error(error)
-        res.status(500).json({ error: "Error al obtener la vista general" })
+        res.status(500)
     }
 }
 
