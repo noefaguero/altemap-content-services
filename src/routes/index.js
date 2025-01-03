@@ -1,10 +1,9 @@
 const router = require('express').Router()
-const passControl = require('../middlewares/passCrontrol')
-
+const passLog = require('../middlewares/passLog')
 
 router.use('/delivery', require('./deliveryRoutes'))
-router.use(passControl()) // protegido por token en gateway
+// protegido por token en gateway
+router.use(passLog()) 
 router.use('/management', require('./managementRoutes'))
-
 
 module.exports = router

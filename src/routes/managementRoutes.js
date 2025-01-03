@@ -1,37 +1,52 @@
-const router = require('express').Router()
+const express = require('express')
+const router = express.Router()
 // midlewares
-const { upload, handleUploadErrors } = require('../middlewares/upload')
-const handleValidationErrors = require('../middlewares/validationErrors')
+const refusePermission = require('../middlewares/refusePermission')
+const upload = require('../middlewares/upload')
+const { validateGetElements } = require('../middlewares/validateQuery')
+const handleValidationErrors = require('../middlewares/validateErrors')
 // controllers
 const { getOverview } = require('../controllers/management/overviewController')
 const { getComponent, getProjectComponents } = require('../controllers/management/componentController')
-const { getElementsByComponent } = require('../controllers/management/elementController')
-const {
-    deleteElementInQueue,
-    putElementInQueue,
-    postElementInQueue
-} = require('../controllers/management/scheduleController')
+const { getComponentElements, getUniqueComponentElement } = require('../controllers/management/elementController')
+const { deleteElementInQueue, putElementInQueue, postElementInQueue } = require('../controllers/management/scheduleController')
+const { postMedia, deleteMediaFiles } = require('../controllers/management/projectElementMediaController')
 
+// NOTA: El cuerpo de la petición puede ser JSON o form-data
 
-// GET
+// UPLOADS ///////////////////////////////////////////////////////////////
+router.post(
+    '/uploads', 
+    refusePermission('contents', 'read'), // permiso insuficiente
+    upload.any(),
+    postMedia
+)
+
+// parsear a JSON
+router.use(express.json())
+
+router.delete(
+    '/uploads', 
+    refusePermission('contents', 'read'),
+    deleteMediaFiles
+)
+
+// QUERIES ///////////////////////////////////////////////////////////////
 router.get('/overview', getOverview)
-router.get('/project-components/:id', getProjectComponents)
-router.get('/component/:id', getComponent)
-router.get('/component-elements/:id', getElementsByComponent)
+router.get('/projects/:id/components', getProjectComponents)
+router.get('/components/:id', getComponent)
+router.get('/components/:id/elements', validateGetElements, getComponentElements)
+router.get('/components/:id/element', getUniqueComponentElement)
 
-// POST
-router.post('/element/:component_id', upload.any(), postElementInQueue)
 
-// PUT
-router.put('/element/:component_id/:element_id', upload.any(), putElementInQueue)
+// MUTATIONS //////////////////////////////////////////////////////////////
+refusePermission("read") // permiso insuficiente
+router.post('/media', postMedia)
+router.post('/components/:id/element', postElementInQueue)
+router.put('/elements/:id', putElementInQueue)
+router.delete('/elements/:id', deleteElementInQueue)
 
-// DELETE
-router.delete('/element/:component_id/:element_id', deleteElementInQueue)
-
-// MIDDLEWARE DE MANEJO DE ERRORES DE CARGA DE ARCHIVOS
-router.use(handleUploadErrors)
-
-// MIDDLEWARE DE MANEJO DE ERRORES DE VALIDACIÓN
+// ERROR CATCHER //////////////////////////////////////////////////////////
 router.use(handleValidationErrors)
 
 
