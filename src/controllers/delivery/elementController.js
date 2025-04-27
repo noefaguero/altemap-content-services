@@ -10,10 +10,10 @@ const getElements = async (id, query) => {
 	// sentido de ordenación (ascendente: 1, desendente: -1)
 	const sortOrder = sortKey[1] === 'desc' ? -1 : 1
 
-	//limite
+	// limite
 	const limit = query?.limit ? parseInt(query.limit) : 30
 
-	//obtener elementos del componente
+	// obtener elementos del componente
 	return elementServices.getElementsByComponent(id, sortField, sortOrder, query.filters, limit, query?.cursor)
 }
 

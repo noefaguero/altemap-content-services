@@ -30,16 +30,14 @@ class AllowedFieldsMap extends Map {
             const components = await componentController.getAllComponents()
 
             for (const component of components) {
-                const allowedFields = { sortable: [], filterable: [] }
+                const allowedFields = { sortable: [], filterable: {} }
                 // sortable types: text, number
                 // filterable types: select
                 component.content_fields.forEach(field => {
                     if (['text', 'number'].includes(field.type)) {
                         allowedFields.sortable.push(field.key)
                     } else if (field.type === 'select') {
-                        const componentFilters = {}
-                        componentFilters[field.key] = field.options // posibles valores de cada filtro
-                        allowedFields.filterable.push(componentFilters)
+                        allowedFields.filterable[field.key] = field.options // posibles valores de cada filtro
                     }
                 })
                 // cargar en el mapa

@@ -39,10 +39,16 @@ exports.getUniqueElementByComponent = async (id) => {
 }
 
 
-exports.getElementsByComponent = async (id, sortField = 'index', sortOrder = 1, filters = [], limit = 30, cursor = '') => {
+exports.getElementsByComponent = async (id, sortField = 'index', sortOrder = 1, filters = {}, limit = 30, cursor = '') => {
 	try {
-		// consulta con filtros
-		const query = filters.length > 0 ? { component_id: id, ...filters } : { component_id: id }
+		const query = { component_id: id }
+
+		// filtros
+        if (Object.keys(filters).length) {
+            for (const [key, value] of Object.entries(filters)) {
+                query[`content.${key}`] = { $in: value }
+            }
+        }
 
 		// ordenación por indice o campo de contenido y cursor
 		const sort = {}
@@ -69,7 +75,7 @@ exports.getElementsByComponent = async (id, sortField = 'index', sortOrder = 1, 
 		}
 
 		// NOTA: si se ordena por campo String, collation asegura orden alfabético (insensible a diacríticos españoles y mayusculas)
-		const results =  await Element.find(query)
+		const results = await Element.find(query)
 			.collation({ locale: 'es', strength: 1 }) 
 			.sort(sort)
 			.limit(limit)

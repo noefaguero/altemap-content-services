@@ -18,32 +18,42 @@ const validateResult = (req, res, next) => {
 
 // middleware propio para validar filtros
 const validateFilters = (req) => {
+	// array de filtros en la URL
     const filters = Object.keys(req.query).filter(item => !['sort', 'limit', 'cursor'].includes(item))
-	const allowedFilters = ALLOWED_FIELDS.get(req.params.id).filterable
+	// json con los filtros validados
+	const validFilters = {}
 	
 	// si hay filtros, se comprueba la clave y el valor de cada filtro
 	if (filters.length) {
+		const allowedFilters = ALLOWED_FIELDS.get(req.params.id).filterable //json
+
 		for (const field of filters) {
-			const value = req.query[field]
-			if (!allowedFilters) {
+			const values = [].concat(req.query[field]) // express maneja queries duplicadas como array
+			if (!allowedFilters[field]) {
 				req.validationErrors.push({
 					param: field,
 					msg: `El filtro ${field} no existe o no es un filtro`,
-					value
+					value: values
 				})
+				continue
 			}
-			if (!allowedFilters.includes(value)) {
+			const invalidValues = values.filter(value => !allowedFilters[field].includes(value))
+			// si hay valores inválidos, se añade un error
+			if (invalidValues.length) {
 				req.validationErrors.push({
 					param: field,
-					msg: `El filtro "${field}" no admite el valor "${value}"`,
-					value
+					msg: `El filtro "${field}" no admite los valores: ${invalidValues.join(', ')}`,
+					value: values
 				})
+				continue
 			}
+			// el filtro es válido
+			validFilters[field] = values
 		}
 	}
 	// si no hay errores en la consulta, se añaden los filtros a req para usarlo en el controlador 
 	if (!req.validationErrors.length) {
-		req.query.filters = filters
+		req.query.filters = validFilters
 	}
 }
 
@@ -53,7 +63,7 @@ const validateSortField = (req) => {
 		req.query.sort = 'index_asc' // valor por defecto
 	}
 	const sortField = req.query.sort.split('_')[0]
-	if (sortField !== 'index' && !ALLOWED_FIELDS[req.params.id].sortable.includes(sortField)) {
+	if (sortField !== 'index' && !ALLOWED_FIELDS.get(req.params.id)?.sortable.includes(sortField)) {
 		req.validationErrors.push({
 			param: 'sort',
 			msg: `El campo "${sortField}" no existe o no es un índice de ordenación`,
