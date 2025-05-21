@@ -2,7 +2,13 @@ const { getElements, getUniqueElement } = require('../delivery/elementController
 
 const getUniqueComponentElement = async ({ params }, res) => {
 	try {
-		const element = await getUniqueElement(params.id)
+		// validacion
+		const id = params.id
+		if (!id) {
+			res.status(400).json({ error: 'Se requiere id del elemento' })
+		}
+		
+		const element = await getUniqueElement(id)
 		res.json(element)
 	} catch (error) {
 		res.status(500)
@@ -11,7 +17,13 @@ const getUniqueComponentElement = async ({ params }, res) => {
 
 const getComponentElements = async ({ params, query }, res) => {
 	try {
-		const elements = await getElements(params.id, query)
+		// validacion
+		const id = params.id
+		if (!id) {
+			res.status(400).json({ error: 'Se requiere id del componente' })
+		}
+		
+		const elements = await getElements(id, query)
 		res.json(elements)
 	} catch (error) {
 		res.status(500)

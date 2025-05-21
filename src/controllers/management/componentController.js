@@ -4,7 +4,11 @@ const projectServices = require('../../services/projectServices')
 
 const getProjectComponents = async (req, res) => {
     try {
-        const projectComponents = await projectServices.getProjectComponents(req.params.id)
+        // validacion
+        const id = req.params.id
+        if (!id) res.status(400).json({ error: 'Se requiere id del proyecto' })
+
+        const projectComponents = await projectServices.getProjectComponents(id)
         res.json(projectComponents)
 
     } catch (error) {
@@ -16,7 +20,11 @@ const getProjectComponents = async (req, res) => {
 // encabezado de elementos en dashboard
 const getComponent = async ({ params }, res) => {
     try {
-        const componentElements = await componentServices.getComponentById(params.id)
+        // validacion
+        const id = params.id
+        if (!id) res.status(400).json({ error: 'Se requiere id del componente' })
+
+        const componentElements = await componentServices.getComponentById(id)
         res.json(componentElements)
 
     } catch (error) {

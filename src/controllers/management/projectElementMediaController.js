@@ -112,59 +112,78 @@ const revertMedia = async (mediaIds, projectId, componentId) => {
 // puede estar relacionado con un componente o no
 const postMedia = async (req, res) => {
     try {
-        if (req?.files) {
-            let data = []
-			pathsByField = {}
-
-            req.files.forEach(file => {
-                // obtener path
-                const path = `${req.project}/${file.filename}`
-                // añadir objeto con metadatos al array
-                data.push({
-                    path,
-                    url: `https://api.altemap.com/media/${path}`,
-                    size: (file.size / 1024).toFixed(2), // bytes a kb
-                    content_type: file.mimetype
-                })
-                // relación campo-rutas
-				pathsByField[file.fieldname] = pathsByField[file.fieldname] 
-					? [...pathsByField[file.fieldname], path] 
-					: [path]
-            })
-
-            // guardar metadatos en la base de datos
-            const results = await projectElementMediaServices.postMedia(data, req.project, req.query?.component)
-            
-			// a partir de la relación campo-rutas...
-			// devolver id y url de archivos cargados, agrupados por campo
-            const filesByField = {}
-			Object.entries(pathsByField).forEach(([fieldName, paths]) => {
-				filesByField[fieldName] = paths.map(path => {
-					const media = results.find(media => media.path === path)
-					return { 
-						id: media._id.toString(), 
-						url: media.url 
-					}
-				})
-			})
-                
-            res.json(filesByField)
+        // validacion
+        if (!req.project) {
+            res.status(400).json({ error: 'Se requiere id del proyecto' })
         }
+        
+        if (!req.files || req.files.length === 0) {
+            res.status(400).json({ error: 'No se han enviado archivos' })
+        }
+        
+        let data = []
+        let pathsByField = {}
+
+        req.files.forEach(file => {
+            // obtener path
+            const path = `${req.project}/${file.filename}`
+            // añadir objeto con metadatos al array
+            data.push({
+                path,
+                url: `https://api.altemap.com/media/${path}`,
+                size: (file.size / 1024).toFixed(2), // bytes a kb
+                content_type: file.mimetype
+            })
+            // relación campo-rutas
+            pathsByField[file.fieldname] = pathsByField[file.fieldname] 
+                ? [...pathsByField[file.fieldname], path] 
+                : [path]
+        })
+
+        // guardar metadatos en la base de datos
+        const results = await projectElementMediaServices.postMedia(data, req.project, req.query?.component)
+        
+        // a partir de la relación campo-rutas...
+        // devolver id y url de archivos cargados, agrupados por campo
+        const filesByField = {}
+        Object.entries(pathsByField).forEach(([fieldName, paths]) => {
+            filesByField[fieldName] = paths.map(path => {
+                const media = results.find(media => media.path === path)
+                return { 
+                    id: media._id.toString(), 
+                    url: media.url 
+                }
+            })
+        })
+            
+        res.json(filesByField)
 
     } catch (error) {
-		console.error("Error al insertar metadatos de medios", error)
-		error.name === 'ValidationError'
-			? res.status(400).json({ error: error.message })
-			: res.status(500)
-	}
+        console.error("Error al insertar metadatos de medios", error)
+        error.name === 'ValidationError'
+            ? res.status(400).json({ error: error.message })
+            : res.status(500).json({ error: 'Error al crear metadatos de medios' })
+    }
 }
 
 
 const deleteMediaFiles = async (req, res) => {
-	const { media } = req.body
-	let transaction
+	// validacion
+	if (!req.project) {
+		res.status(400).json({ error: 'Se requiere id del proyecto' })
+	}
 	
+	if (!req.body || !req.body.media) {
+		res.status(400).json({ error: 'Se requiere lista de archivos a eliminar' })
+	}
+	
+	const media = req.body.media
+	if (!Array.isArray(media) || media.length === 0) {
+		res.status(400).json({ error: 'La lista de archivos no puede estar vacía' })
+	}
+		
 	// eliminar datos de archivos
+	let transaction
 	try {
 		transaction = await projectElementMediaServices.deleteMedia(media.map(file => file._id, req.project))
 	} catch (error) {

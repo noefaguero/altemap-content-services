@@ -24,7 +24,13 @@ const getUniqueElement = async (id) => elementServices.getUniqueElementByCompone
 
 const getComponentElements = async ({ params, query }, res) => {
 	try {
-		const elements = await getElements(params.id, query)
+		// validacion
+		const id = params.id
+		if (!id) {
+			res.status(400).json({ error: 'Se requiere id del componente' })
+		}
+		
+		const elements = await getElements(id, query)
 		res.json(elements)
 
 	} catch (error) {
@@ -35,7 +41,13 @@ const getComponentElements = async ({ params, query }, res) => {
 
 const getUniqueComponentElement = async ({ params }, res) => {
 	try {
-		const element = await getUniqueElement(params.id)
+		// validacion
+		const id = params.id
+		if (!id) {
+			res.status(400).json({ error: 'Se requiere id del elemento' })
+		}
+		
+		const element = await getUniqueElement(id)
 		res.json(element)
 
 	} catch (error) {
@@ -46,7 +58,13 @@ const getUniqueComponentElement = async ({ params }, res) => {
 
 const getElement = async ({ params }, res) => {
 	try {
-		const element = await elementServices.getElementById(params.id)
+		// validacion
+		const id = params.id
+		if (!id) {
+			res.status(400).json({ error: 'Se requiere id del elemento' })
+		}
+		
+		const element = await elementServices.getElementById(id)
 		res.json(element)
 
 	} catch (error) {

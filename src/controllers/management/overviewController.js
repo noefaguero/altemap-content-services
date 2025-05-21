@@ -3,6 +3,10 @@ const scheduleController = require('./scheduleController')
 
 const getOverview = async ({ project }, res) => {
     try {
+        if (!project) {
+            res.status(400).json({ error: 'Se requiere id del proyecto' })
+        }
+
         const { metrics } = await projectController.getMetrics(project)
         const jobs = await scheduleController.getJobsByProject(project)
         

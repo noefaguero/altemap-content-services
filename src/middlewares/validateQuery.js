@@ -11,7 +11,7 @@ const validateResult = (req, res, next) => {
 	if (!errors.isEmpty()) {
 		const customErrors = {} // nombre del campo y mensaje de error
 		errors.array().forEach((error) => customErrors[error.param] = error.msg )
-		return res.status(400).json({ errors: customErrors})
+		res.status(400).json({ errors: customErrors})
 	}
 	next()
 }
