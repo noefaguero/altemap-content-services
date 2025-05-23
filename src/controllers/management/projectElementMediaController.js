@@ -162,7 +162,7 @@ const postMedia = async (req, res) => {
         console.error("Error al insertar metadatos de medios", error)
         error.name === 'ValidationError'
             ? res.status(400).json({ error: error.message })
-            : res.status(500).json({ error: 'Error al crear metadatos de medios' })
+            : res.status(500)
     }
 }
 

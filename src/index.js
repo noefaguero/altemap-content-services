@@ -17,7 +17,7 @@ app.use('/content-services', require('./routes'))
 
 // MIDDLEWARE DE MANEJO DE ERRORES GENERALES
 app.use((error, req, res, next) => {
-    res.status(error.status || 500).json({ error: { message: error.message } })
+    res.status(error.status || 500).json({ 'error': { message: error.message } })
 })
 
 // ESCUCHAR CONEXIONES

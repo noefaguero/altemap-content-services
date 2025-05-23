@@ -5,12 +5,13 @@ const getUniqueComponentElement = async ({ params }, res) => {
 		// validacion
 		const id = params.id
 		if (!id) {
-			res.status(400).json({ error: 'Se requiere id del elemento' })
+			return res.status(400).json({ 'error': 'Se requiere id del elemento' })
 		}
 		
 		const element = await getUniqueElement(id)
 		res.json(element)
 	} catch (error) {
+		console.error('Error al obtener elemento único:', error)
 		res.status(500)
 	}
 }
@@ -20,7 +21,7 @@ const getComponentElements = async ({ params, query }, res) => {
 		// validacion
 		const id = params.id
 		if (!id) {
-			res.status(400).json({ error: 'Se requiere id del componente' })
+			return res.status(400).json({ 'error': 'Se requiere id del componente' })
 		}
 		
 		const elements = await getElements(id, query)

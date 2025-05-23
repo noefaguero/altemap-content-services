@@ -38,8 +38,7 @@ const postElementInQueue = async (req, res) => {
                         data.component_id
                     )
                 }
-                res.status(400).json({ error: validationErrors.errors }) // bad request
-                return
+                return res.status(400).json({ 'error': validationErrors.errors }) // bad request
             }
 
             // programar en fecha
@@ -52,20 +51,19 @@ const postElementInQueue = async (req, res) => {
                     component: params.id
                 } // job.attrs.data
             )
-            res.json({
+            return res.json({
                 message: 'Inserción del elemento programada correctamente',
                 element: element
             })
-            return
         }
         // operacion directa
         const element = await projectElementMediaController.postElementWithMedia(data, project, data.component_id)
         res.status(201).json(element)
 
     } catch (error) {
-        console.log(error)
+        console.error('Error al programar elemento:', error)
         error.name === 'ValidationError'
-			? res.status(400).json({ error: error.message })
+			? res.status(400).json({ 'error': error.message })
 			: res.status(500)
     }
 }
@@ -98,8 +96,7 @@ const putElementInQueue = async (req, res) => {
                 if (data?.media.length > 0) {
                     await projectElementMediaController.revertMedia(data.content.media, project, componentId)
                 }
-                res.status(400).json({ error: validationErrors.errors }) // bad request
-                return
+                return res.status(400).json({ 'error': validationErrors.errors }) // bad request
             }
 
             // programar
@@ -113,11 +110,10 @@ const putElementInQueue = async (req, res) => {
                     component: componentId
                 } // job.attrs.data
             )
-            res.json({ 
+            return res.json({ 
                 message: 'Actualización del elemento programada correctamente',
                 element
             })
-            return
         }
 
         // operacion directa
@@ -125,9 +121,9 @@ const putElementInQueue = async (req, res) => {
         res.json(element)
 
     } catch (error) {
-        console.log(error)
+        console.error('Error al actualizar elemento:', error)
         error.name === 'ValidationError'
-			? res.status(400).json({ error: error.message })
+			? res.status(400).json({ 'error': error.message })
 			: res.status(500)
     }
 }
@@ -148,11 +144,10 @@ const deleteElementInQueue = async (req, res) => {
                     element: params.id 
                 } // job.attrs.data
             )
-            res.json({ 
+            return res.json({ 
                 message: 'Eliminación de elemento programada correctamente',
                 element
             })
-            return
         }
 
         // operacion directa
@@ -160,7 +155,7 @@ const deleteElementInQueue = async (req, res) => {
         res.json(element)
 
     } catch (error) {
-        console.log(error)
+        console.error('Error al eliminar elemento:', error)
         res.status(500)
     }
 }

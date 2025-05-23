@@ -6,7 +6,7 @@ const getProjectComponents = async (req, res) => {
     try {
         // validacion
         const id = req.params.id
-        if (!id) res.status(400).json({ error: 'Se requiere id del proyecto' })
+        if (!id) return res.status(400).json({ error: 'Se requiere id del proyecto' })
 
         const projectComponents = await projectServices.getProjectComponents(id)
         res.json(projectComponents)
@@ -22,7 +22,7 @@ const getComponent = async ({ params }, res) => {
     try {
         // validacion
         const id = params.id
-        if (!id) res.status(400).json({ error: 'Se requiere id del componente' })
+        if (!id) return res.status(400).json({ error: 'Se requiere id del componente' })
 
         const componentElements = await componentServices.getComponentById(id)
         res.json(componentElements)
