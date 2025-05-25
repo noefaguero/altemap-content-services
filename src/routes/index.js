@@ -1,9 +1,13 @@
 const router = require('express').Router()
-const passLog = require('../middlewares/passLog')
+const passLogger = require('../middlewares/passLogger')
+const reqLogger = require('../middlewares/reqLogger')
+
+router.use(reqLogger()) // dev mode
 
 router.use('/delivery', require('./deliveryRoutes'))
+
 // protegido por token en gateway
-router.use(passLog()) 
+router.use(passLogger()) 
 router.use('/management', require('./managementRoutes'))
 
 module.exports = router

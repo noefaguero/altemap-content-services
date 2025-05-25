@@ -13,7 +13,7 @@ const getProjectComponents = async (req, res) => {
 
     } catch (error) {
         console.error("Error al obtener componentes del proyecto", error)
-        res.status(500)
+        res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 
@@ -29,7 +29,7 @@ const getComponent = async ({ params }, res) => {
 
     } catch (error) {
         console.error("Error al obtener un componente", error)
-        res.status(500)
+        res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 

@@ -35,7 +35,7 @@ const getOverview = async ({ project }, res) => {
 
     } catch (error) {
         console.error(error)
-        res.status(500)
+        res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 

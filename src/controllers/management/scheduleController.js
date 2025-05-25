@@ -64,7 +64,7 @@ const postElementInQueue = async (req, res) => {
         console.error('Error al programar elemento:', error)
         error.name === 'ValidationError'
 			? res.status(400).json({ 'error': error.message })
-			: res.status(500)
+			: res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 
@@ -124,7 +124,7 @@ const putElementInQueue = async (req, res) => {
         console.error('Error al actualizar elemento:', error)
         error.name === 'ValidationError'
 			? res.status(400).json({ 'error': error.message })
-			: res.status(500)
+			: res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 
@@ -156,7 +156,7 @@ const deleteElementInQueue = async (req, res) => {
 
     } catch (error) {
         console.error('Error al eliminar elemento:', error)
-        res.status(500)
+        res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 

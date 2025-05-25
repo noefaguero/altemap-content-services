@@ -12,7 +12,7 @@ const getUniqueComponentElement = async ({ params }, res) => {
 		res.json(element)
 	} catch (error) {
 		console.error('Error al obtener elemento único:', error)
-		res.status(500)
+		res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
 	}
 }
 
@@ -27,7 +27,7 @@ const getComponentElements = async ({ params, query }, res) => {
 		const elements = await getElements(id, query)
 		res.json(elements)
 	} catch (error) {
-		res.status(500)
+		res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
 	}
 }
 

@@ -162,7 +162,7 @@ const postMedia = async (req, res) => {
         console.error("Error al insertar metadatos de medios", error)
         error.name === 'ValidationError'
             ? res.status(400).json({ error: error.message })
-            : res.status(500)
+            : res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
     }
 }
 
@@ -188,7 +188,7 @@ const deleteMediaFiles = async (req, res) => {
 		transaction = await projectElementMediaServices.deleteMedia(media.map(file => file._id, req.project))
 	} catch (error) {
 		console.error("Error al eliminar datos de archivos", error)
-		res.status(500)
+		res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
 	}
 
 	// eliminar archivos
@@ -199,7 +199,7 @@ const deleteMediaFiles = async (req, res) => {
 	} catch (error) {
 		await transaction.abort() // rollback en caso de error
 		console.error("Error al eliminar archivos multimedia", error)
-		res.status(500)
+		res.status(500).json({ error: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde."})
 	}
 }
 
